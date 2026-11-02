@@ -1,165 +1,473 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../services/api_client.dart';
-import '../theme/app_colors.dart';
-import '../widgets/field_label.dart';
-import '../widgets/flood_house_mark.dart';
+import '../services/browser_notification.dart';
+
 
 class WelcomeScreen extends StatefulWidget {
-  const WelcomeScreen({super.key, required this.account});
+  const WelcomeScreen({
+    super.key,
+    required this.account,
+    required this.onContinue,
+  });
 
   final AuthenticatedUser account;
+  final ValueChanged<BuildContext> onContinue;
 
   @override
   State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
-  final _homeLocationController = TextEditingController();
-  bool _continued = false;
+  final ApiClient _apiClient = ApiClient();
+
+  bool _locationSelected = false;
+  bool _notificationsSelected = false;
+  String _homeLocation = '';
+  bool _navigating = false;
 
   @override
-  void dispose() {
-    _homeLocationController.dispose();
-    super.dispose();
+  void initState() {
+  super.initState();
+  _refreshPermissions();
+  }
+  Future<void> _refreshPermissions() async {
+    try {
+      bool locationGranted = false;
+      bool notificationGranted = false;
+
+      if (kIsWeb) {
+        final granted = await requestBrowserNotificationPermission();
+        if (!mounted) return;
+
+        setState(() {
+          _notificationsSelected = granted;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              granted
+                  ? 'Izin notifikasi browser berhasil diberikan.'
+                  : 'Izin notifikasi belum diberikan. Periksa pengaturan situs di Chrome.',
+            ),
+          ),
+        );
+
+return;
+      } else {
+        final locationPermission = await Geolocator.checkPermission();
+        final notificationStatus = await Permission.notification.status;
+
+        locationGranted =
+            locationPermission == LocationPermission.whileInUse ||
+            locationPermission == LocationPermission.always;
+
+        notificationGranted = notificationStatus.isGranted;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _locationSelected = locationGranted;
+        _notificationsSelected = notificationGranted;
+      });
+    } catch (e) {
+      debugPrint('Gagal memeriksa izin: $e');
+    }
+  }
+  Future<void> _handleLocationChanged(bool enabled) async {
+    if (!enabled) {
+      setState(() => _locationSelected = false);
+      return;
+    }
+
+    try {
+      // Periksa apakah layanan lokasi perangkat/browser tersedia.
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+      if (!serviceEnabled) {
+        if (!mounted) return;
+
+        setState(() => _locationSelected = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Layanan lokasi belum aktif. Aktifkan lokasi pada perangkat atau browser.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      // Periksa izin lokasi saat ini.
+      var permission = await Geolocator.checkPermission();
+
+      // Minta izin jika belum diberikan.
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (!mounted) return;
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever ||
+          permission == LocationPermission.unableToDetermine) {
+        setState(() => _locationSelected = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Izin lokasi belum diberikan. Periksa pengaturan izin lokasi browser atau perangkat.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      // Coba mengambil koordinat untuk memastikan lokasi benar-benar tersedia.
+      final position = await Geolocator.getCurrentPosition();
+
+      if (!mounted) return;
+
+      setState(() => _locationSelected = true);
+
+      debugPrint(
+        'Lokasi berhasil diperoleh: '
+        '${position.latitude}, ${position.longitude}',
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Akses lokasi berhasil diaktifkan.'),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Gagal meminta atau mengambil lokasi: $e');
+
+      if (!mounted) return;
+
+      setState(() => _locationSelected = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Lokasi belum dapat diaktifkan. Periksa izin browser dan koneksi.',
+          ),
+        ),
+      );
+    }
+  }
+  Future<void> _handleNotificationChanged(bool enabled) async {
+    if (!enabled) {
+      setState(() {
+        _notificationsSelected = false;
+      });
+
+      return;
+    }
+
+    try {
+      if (kIsWeb) {
+        final granted = await requestBrowserNotificationPermission();
+
+        if (!mounted) return;
+
+        setState(() {
+          _notificationsSelected = granted;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              granted
+                  ? 'Izin notifikasi browser berhasil diberikan.'
+                  : 'Izin notifikasi belum diberikan. Periksa pengaturan situs di Chrome.',
+            ),
+          ),
+        );
+
+        return;
+      }
+
+      final status = await Permission.notification.request();
+
+      if (!mounted) return;
+
+      if (status.isGranted) {
+        setState(() {
+          _notificationsSelected = true;
+        });
+      } else {
+        setState(() {
+          _notificationsSelected = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Izin notifikasi belum diberikan. '
+              'Periksa pengaturan notifikasi perangkat.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Gagal meminta izin notifikasi: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        _notificationsSelected = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Notifikasi belum dapat diaktifkan.',
+          ),
+        ),
+      );
+    }
+  }
+  Future<void> _editHomeLocation() async {
+    final controller = TextEditingController(text: _homeLocation);
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Lokasi rumah'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Alamat'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (!mounted || value == null || value.isEmpty) return;
+    setState(() => _homeLocation = value);
   }
 
-  void _continue({required bool requestSetup}) {
-    FocusScope.of(context).unfocus();
-    setState(() => _continued = true);
+Future<void> _continue() async {
+  if (_navigating) return;
+
+  setState(() => _navigating = true);
+  FocusScope.of(context).unfocus();
+
+  try {
+    // Simpan alamat rumah ke database Laravel.
+    await _apiClient.updateProfile(
+      token: widget.account.token,
+      homeAddress: _homeLocation.trim(),
+    );
+
+    if (!mounted) return;
+
+    // Berpindah ke halaman berikutnya setelah alamat tersimpan.
+    widget.onContinue(context);
+  } catch (error) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      const SnackBar(
         content: Text(
-          requestSetup
-              ? 'Pilihan dicatat. Permintaan izin perangkat belum dihubungkan.'
-              : 'Kamu dapat mengatur izin nanti di pengaturan perangkat.',
+          'Alamat rumah gagal disimpan. Periksa koneksi server.',
         ),
       ),
     );
-  }
 
+    setState(() => _navigating = false);
+  }
+}
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
+    final canContinue = _locationSelected && _notificationsSelected;
+    final welcomeTheme = Theme.of(context).copyWith(
+      textTheme: Theme.of(context).textTheme
+          .apply(fontFamily: 'AtkinsonHyperlegible'),
+      primaryTextTheme: Theme.of(context).primaryTextTheme
+          .apply(fontFamily: 'AtkinsonHyperlegible'),
+    );
+    return Theme(
+      data: welcomeTheme,
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: const SystemUiOverlayStyle(
+          statusBarColor: Color(0xFF0B2E3B),
+          statusBarIconBrightness: Brightness.light,
+          systemNavigationBarColor: Color(0xFFF1F6F8),
+          systemNavigationBarIconBrightness: Brightness.dark,
+        ),
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF1F6F8),
+          body: SafeArea(
+            top: false,
+            child: Column(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppColors.navy,
-                    borderRadius: BorderRadius.circular(26),
-                    gradient: const LinearGradient(
-                      colors: [AppColors.navy, AppColors.navyLight],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                  width: double.infinity,
+                  height: 124,
+                  padding: EdgeInsets.fromLTRB(
+                    22,
+                    MediaQuery.paddingOf(context).top + 8,
+                    22,
+                    18,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0B2E3B),
+                    borderRadius: BorderRadius.vertical(
+                      bottom: Radius.circular(28),
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      const FloodHouseMark(size: 66, light: true),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Selamat datang,',
-                              style: TextStyle(color: Color(0xFFCAE3EA)),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              widget.account.name,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 28),
-                const Text(
-                  'Atur kesiapan awal',
-                  style: TextStyle(
-                    color: AppColors.navy,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Pengaturan ini membantu menyesuaikan informasi untuk rumahmu. Semua langkah bisa dilewati.',
-                  style: TextStyle(color: AppColors.muted, height: 1.5),
-                ),
-                const SizedBox(height: 20),
-                const _SetupCard(
-                  icon: Icons.location_on_outlined,
-                  title: 'Izin lokasi',
-                  detail: 'Lokasi perangkat dapat membantu menampilkan informasi sekitar.',
-                ),
-                const SizedBox(height: 12),
-                const _SetupCard(
-                  icon: Icons.notifications_none_rounded,
-                  title: 'Izin notifikasi',
-                  detail: 'Notifikasi dapat memberi tahu saat ada informasi kesiapsiagaan.',
-                ),
-                const SizedBox(height: 20),
-                const FieldLabel('Lokasi rumah (opsional)'),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _homeLocationController,
-                  textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    hintText: 'Contoh: Kecamatan Padang Barat',
-                    prefixIcon: Icon(Icons.home_outlined),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _PrimaryButton(
-                  label: _continued
-                      ? 'Pengaturan awal selesai'
-                      : 'Izinkan dan lanjut',
-                  onPressed: _continued
-                      ? null
-                      : () => _continue(requestSetup: true),
-                ),
-                const SizedBox(height: 10),
-                TextButton(
-                  onPressed: _continued
-                      ? null
-                      : () => _continue(requestSetup: false),
+                  alignment: Alignment.centerLeft,
                   child: const Text(
-                    'Nanti saja',
+                    'Selamat Datang',
                     style: TextStyle(
-                      color: AppColors.navy,
+                      color: Colors.white,
+                      fontSize: 23,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                if (_continued)
-                  const _SessionNotice()
-                else
-                  const Text(
-                    'Izin lokasi dan notifikasi belum dihubungkan ke permintaan izin Android.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 12,
-                      height: 1.4,
-                    ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final compact = constraints.maxHeight < 690;
+                      return SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(
+                          33,
+                          compact ? 12 : 11,
+                          37,
+                          22,
+                        ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 520),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 5),
+                                  child: Text(
+                                    'Aktifkan agar peringatan tepat',
+                                    maxLines: 2,
+                                    textAlign: TextAlign.left,
+                                    style: TextStyle(
+                                      color: Color(0xFF0B2E3B),
+                                      fontSize: 20,
+                                      height: 1.45,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: compact ? 8 : 10),
+                                _PermissionCard(
+                                  title: 'Lokasi',
+                                  detail: 'Untuk tahu air naik di dekat rumahmu dan rute evakuasi terdekat.',
+                                  value: _locationSelected,
+
+                                  onChanged: _handleLocationChanged,
+                            
+                                ),
+                                const SizedBox(height: 14),
+                                _PermissionCard(
+                                  title: 'Notifikasi',
+                                  detail: 'Untuk peringatan Waspada, Siaga, dan Awas, termasuk saat aplikasi tertutup.',
+                                  value: _notificationsSelected,
+                                  onChanged: _handleNotificationChanged,
+                                ),
+                                const SizedBox(height: 14),
+                                _HomeLocationCard(
+                                  address: _homeLocation.isNotEmpty
+                                      ? _homeLocation
+                                      : 'Masukkan alamat rumah Anda',
+                                  onEdit: _editHomeLocation,
+                                ),
+                                SizedBox(height: compact ? 24 : 40),
+                                DecoratedBox(
+                                  key: const ValueKey(
+                                    'welcome-continue-gradient',
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: canContinue
+                                        ? null
+                                        : const Color(0xFFB9C8CC),
+                                    gradient: canContinue
+                                        ? const LinearGradient(
+                                            begin: Alignment.centerLeft,
+                                            end: Alignment.centerRight,
+                                            colors: [
+                                              Color(0xFF0B2E3B),
+                                              Color(0xFF2187A3),
+                                            ],
+                                          )
+                                        : null,
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  child: SizedBox(
+                                    height: 56,
+                                    child: FilledButton(
+                                      onPressed: canContinue && !_navigating
+                                          ? _continue
+                                          : null,
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: Colors.transparent,
+                                        disabledBackgroundColor:
+                                            Colors.transparent,
+                                        foregroundColor: Colors.white,
+                                        disabledForegroundColor: Colors.white,
+                                        shadowColor: Colors.transparent,
+                                        shape: const StadiumBorder(),
+                                        textStyle: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      child: const Text('Izinkan dan lanjut'),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  height: 56,
+                                  child: OutlinedButton(
+                                    onPressed: _navigating ? null : _continue,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFF0B2E3B),
+                                      side: const BorderSide(
+                                        color: Color(0xFF0B2E3B),
+                                      ),
+                                      shape: const StadiumBorder(),
+                                      textStyle: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    child: const Text('Nanti saja'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
+                ),
               ],
             ),
           ),
@@ -169,39 +477,38 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 }
 
-class _SetupCard extends StatelessWidget {
-  const _SetupCard({
-    required this.icon,
+class _PermissionCard extends StatelessWidget {
+  const _PermissionCard({
     required this.title,
     required this.detail,
+    required this.value,
+    required this.onChanged,
   });
 
-  final IconData icon;
   final String title;
   final String detail;
+  final bool value;
+  final ValueChanged<bool> onChanged;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
+  Widget build(BuildContext context) => SizedBox(
+    height: 125,
+    child: Container(
+      padding: const EdgeInsets.fromLTRB(23, 12, 12, 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE7EDF0)),
+        borderRadius: BorderRadius.circular(21),
+        border: Border.all(color: const Color(0xFFE8ECEE)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x24000000),
+            blurRadius: 3,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.tealPale,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: AppColors.teal),
-          ),
-          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,79 +516,92 @@ class _SetupCard extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    color: AppColors.navy,
+                    color: Color(0xFF0B2E3B),
+                    fontSize: 19,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 3),
                 Text(
                   detail,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: AppColors.muted,
-                    height: 1.4,
-                    fontSize: 13,
+                    color: Colors.black,
+                    fontSize: 14.5,
+                    height: 1.35,
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+          Switch.adaptive(
+            value: value,
+            activeTrackColor: const Color(0xFF2EA361),
+            onChanged: onChanged,
+          ),
         ],
       ),
-    );
-  }
-}
-
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({required this.label, required this.onPressed});
-
-  final String label;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 54,
-    child: FilledButton(
-      onPressed: onPressed,
-      style: FilledButton.styleFrom(
-        backgroundColor: AppColors.teal,
-        foregroundColor: Colors.white,
-        disabledBackgroundColor: const Color(0xFFABC9C8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-      ),
-      child: Text(label),
     ),
   );
 }
 
-class _SessionNotice extends StatelessWidget {
-  const _SessionNotice();
+class _HomeLocationCard extends StatelessWidget {
+  const _HomeLocationCard({required this.address, required this.onEdit});
+
+  final String address;
+  final VoidCallback onEdit;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF6E5),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFFF2E1BC)),
-    ),
-    child: const Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFF8A641C)),
-        SizedBox(width: 9),
-        Expanded(
-          child: Text(
-            'Mode UI: akun hanya tersedia selama aplikasi terbuka. Backend belum terhubung.',
+  Widget build(BuildContext context) => SizedBox(
+    height: 124,
+    child: Container(
+      padding: const EdgeInsets.fromLTRB(23, 12, 18, 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(21),
+        border: Border.all(color: const Color(0xFFE8ECEE)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x24000000),
+            blurRadius: 3,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Lokasi rumah',
             style: TextStyle(
-              color: Color(0xFF75591F),
-              fontSize: 12,
-              height: 1.4,
+              color: Color(0xFF0B2E3B),
+              fontSize: 19,
+              fontWeight: FontWeight.w700,
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 5),
+          Text(
+            address,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Color(0xFF808080), fontSize: 14.5),
+          ),
+          TextButton(
+            onPressed: onEdit,
+            style: TextButton.styleFrom(
+              minimumSize: Size.zero,
+              padding: const EdgeInsets.only(top: 1),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              foregroundColor: const Color(0xFF0786A0),
+            ),
+            child: const Text(
+              'Ubah',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }

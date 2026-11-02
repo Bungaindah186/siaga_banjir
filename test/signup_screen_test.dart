@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_firstapp/pages/login_screen.dart';
 import 'package:flutter_firstapp/pages/signup_screen.dart';
 
 void main() {
@@ -86,42 +87,64 @@ void main() {
     tester.view.resetDevicePixelRatio();
   });
 
-  testWidgets('Sign Up validates locally without registering to a server', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(402, 874);
-    await tester.pumpWidget(const MaterialApp(home: SignUpScreen()));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'Sign Up validates and stays put if local account storage is not provided',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(402, 874);
+      await tester.pumpWidget(
+        MaterialApp(home: LoginScreen(authenticate: null, onLogin: (_) {})),
+      );
+      await tester.pumpAndSettle();
 
-    final button = find.widgetWithText(ElevatedButton, 'Sign Up');
-    await tester.ensureVisible(button);
-    await tester.tap(button);
-    await tester.pump();
-    expect(find.text('Nama lengkap wajib diisi.'), findsOneWidget);
-    expect(find.text('Email wajib diisi.'), findsOneWidget);
-    expect(find.text('Kata sandi minimal 8 karakter.'), findsOneWidget);
-    expect(find.text('Konfirmasi kata sandi wajib diisi.'), findsOneWidget);
+      await tester.tap(find.text('Sign up'));
+      await tester.pumpAndSettle();
 
-    final fields = find.byType(TextFormField);
-    await tester.enterText(fields.at(0), 'Rani Rahmadani');
-    await tester.enterText(fields.at(1), 'rani@example.com');
-    await tester.enterText(fields.at(2), 'password123');
-    await tester.enterText(fields.at(3), 'password123');
-    await tester.tap(find.byType(Checkbox));
-    await tester.ensureVisible(button);
-    await tester.tap(button);
-    await tester.pump();
+      final button = find.widgetWithText(ElevatedButton, 'Sign Up');
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pump();
+      expect(find.text('Nama lengkap wajib diisi.'), findsOneWidget);
+      expect(find.text('Email wajib diisi.'), findsOneWidget);
+      expect(find.text('Kata sandi minimal 8 karakter.'), findsOneWidget);
+      expect(find.text('Konfirmasi kata sandi wajib diisi.'), findsOneWidget);
 
-    expect(find.byType(SignUpScreen), findsOneWidget);
-    expect(
-      find.text('Registrasi belum dihubungkan pada tahap UI ini.'),
-      findsOneWidget,
-    );
-    expect(find.text('Pendaftaran berhasil.'), findsNothing);
-    expect(tester.takeException(), isNull);
+      final fields = find.byType(TextFormField);
+      await tester.enterText(fields.at(0), 'Rani Rahmadani');
+      await tester.enterText(fields.at(1), 'rani@example.com');
+      await tester.enterText(fields.at(2), 'password123');
+      await tester.enterText(fields.at(3), 'password456');
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pump();
 
-    tester.view.resetPhysicalSize();
-    tester.view.resetDevicePixelRatio();
-  });
+      expect(find.text('Konfirmasi kata sandi tidak sama.'), findsOneWidget);
+      expect(find.byType(SignUpScreen), findsOneWidget);
+
+      await tester.enterText(fields.at(3), 'password123');
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pump();
+      expect(
+        find.text('Setujui persyaratan privasi untuk melanjutkan.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byType(Checkbox));
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SignUpScreen), findsOneWidget);
+      expect(find.byType(LoginScreen), findsNothing);
+      expect(
+        find.text('Penyimpanan akun lokal belum tersedia.'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    },
+  );
 }

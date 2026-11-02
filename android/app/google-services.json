@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "834779138617",
+    "project_id": "siagabanjir-padang",
+    "storage_bucket": "siagabanjir-padang.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:834779138617:android:83b7eca0eb545a3dd1dbe8",
+        "android_client_info": {
+          "package_name": "com.example.flutter_firstapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlg5HHXsf1ZMqxj8lSx69I8zD2G7l2kSE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

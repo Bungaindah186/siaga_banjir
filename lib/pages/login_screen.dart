@@ -12,6 +12,7 @@ class LoginScreen extends StatefulWidget {
     super.key,
     required this.authenticate,
     required this.onLogin,
+    this.register,
   });
 
   final Future<AuthenticatedUser> Function({
@@ -19,6 +20,13 @@ class LoginScreen extends StatefulWidget {
     required String password,
   })?
   authenticate;
+  final Future<void> Function({
+    required String name,
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+  })?
+  register;
   final ValueChanged<AuthenticatedUser> onLogin;
 
   @override
@@ -112,11 +120,22 @@ class _LoginScreenState extends State<LoginScreen>
 
   Future<void> _openSignUp() async {
     setState(() => _error = null);
+
     final registeredEmail = await Navigator.of(context).push<String>(
-      MaterialPageRoute<String>(builder: (_) => const SignUpScreen()),
+      MaterialPageRoute<String>(
+        builder: (_) => SignUpScreen(register: widget.register),
+      ),
     );
     if (!mounted || registeredEmail == null) return;
+
     _emailController.text = registeredEmail;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Akun disimpan di perangkat ini. Silakan login.'),
+        ),
+      );
   }
 
   Future<void> _login() async {

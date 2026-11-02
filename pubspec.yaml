@@ -2,7 +2,7 @@ name: flutter_firstapp
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -34,6 +34,21 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  crypto: ^3.0.7
+  cryptography: ^2.9.0
+  geolocator: ^14.1.2
+  flutter_secure_storage: ^11.2.0
+  http: ^1.6.0
+  permission_handler: ^12.0.3
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
+  url_launcher: ^6.3.3
+  image_picker: ^1.2.4
+  shared_preferences: ^2.5.6
+  web: ^1.1.2
+  google_maps_flutter: ^2.19.0
+  firebase_core: ^5.1.0
+  firebase_messaging: ^17.0.1
 
 dev_dependencies:
   flutter_test:
@@ -51,7 +66,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -60,6 +74,7 @@ flutter:
   assets:
     - assets/splash/
     - assets/login/
+    - assets/geo/padang_kelurahan.geojson
 
   fonts:
     - family: AtkinsonHyperlegible

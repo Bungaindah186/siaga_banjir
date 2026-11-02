@@ -54,3 +54,23 @@ app.*.map.json
 /android/key.properties
 *.jks
 *.keystore
+
+# Laravel
+/siaga_banjir_api/.env
+/siaga_banjir_api/.env.*
+!/siaga_banjir_api/.env.example
+/siaga_banjir_api/vendor/
+/siaga_banjir_api/node_modules/
+/siaga_banjir_api/storage/*.key
+/siaga_banjir_api/storage/logs/*
+/siaga_banjir_api/bootstrap/cache/*
+/siaga_banjir_api/.phpunit.result.cache
+
+# Android build
+/android/build/
+
+# Local IDE settings
+.vscode/
+
+# Firebase private credentials
+/siaga_banjir_api/storage/app/firebase/firebase-service-account.json

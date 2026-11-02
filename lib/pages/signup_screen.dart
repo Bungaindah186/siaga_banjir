@@ -129,7 +129,7 @@ class _SignUpScreenState extends State<SignUpScreen>
     }
     final register = widget.register;
     if (register == null) {
-      _showMessage('Registrasi belum dihubungkan pada tahap UI ini.');
+      _showMessage('Penyimpanan akun lokal belum tersedia.');
       return;
     }
     setState(() => _isSubmitting = true);
@@ -244,7 +244,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                 left: 0,
                 right: 0,
                 bottom: -keyboardInset,
-                height: 195,
+                height: 150,
                 child: _entry(
                   Stack(
                     fit: StackFit.expand,
@@ -267,13 +267,13 @@ class _SignUpScreenState extends State<SignUpScreen>
               Positioned(
                 left: 0,
                 right: 0,
-                height: 180,
-                bottom: 145 - keyboardInset,
+                height: 380,
+                bottom: 1 - keyboardInset,
                 child: IgnorePointer(
                   child: AnimatedBuilder(
                     animation: _entryController,
                     builder: (context, child) => Transform.translate(
-                      offset: Offset(0, 5 * (1 - _entryController.value)),
+                      offset: Offset(0,85 * (1 - _entryController.value)),
                       child: child,
                     ),
                     child: const CustomPaint(
@@ -286,14 +286,35 @@ class _SignUpScreenState extends State<SignUpScreen>
               SafeArea(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    final horizontalInset = (constraints.maxWidth * .1045)
-                        .clamp(24.0, 48.0);
+                    final screenWidth = constraints.maxWidth;
+                    final screenHeight = constraints.maxHeight;
+
+                  final horizontalInset = (screenWidth * 0.1045)
+                    .clamp(24.0, 48.0);
+
+                  final topPadding = (screenHeight * 0.055)
+                    .clamp(24.0, 48.0);
+
+                  final titleGap = (screenHeight * 0.035)
+                    .clamp(18.0, 31.0);
+
+                  final fieldGap = (screenHeight * 0.019)
+                    .clamp(10.0, 17.0);
+
+                  final checkboxGap = (screenHeight * 0.012)
+                    .clamp(8.0, 11.0);
+
+                  final buttonGap = (screenHeight * 0.034)
+                    .clamp(18.0, 30.0);
+
+                  final buttonHeight = (screenHeight * 0.061)
+                    .clamp(48.0, 56.0);
                     return SingleChildScrollView(
                       keyboardDismissBehavior:
                           ScrollViewKeyboardDismissBehavior.onDrag,
                       padding: EdgeInsets.fromLTRB(
                         horizontalInset,
-                        48,
+                        topPadding,
                         horizontalInset,
                         30,
                       ),
@@ -318,7 +339,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   .08,
                                   .34,
                                 ),
-                                const SizedBox(height: 31),
+                                SizedBox(height: titleGap),
                                 _entry(
                                   _signupField(
                                     child: TextFormField(
@@ -344,7 +365,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   .18,
                                   .43,
                                 ),
-                                const SizedBox(height: 17),
+                                SizedBox(height: fieldGap),
                                 _entry(
                                   _signupField(
                                     child: TextFormField(
@@ -365,7 +386,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   .26,
                                   .5,
                                 ),
-                                const SizedBox(height: 17),
+                                SizedBox(height: fieldGap),
                                 _entry(
                                   _signupField(
                                     child: TextFormField(
@@ -412,7 +433,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   .34,
                                   .58,
                                 ),
-                                const SizedBox(height: 17),
+                                SizedBox(height: fieldGap),
                                 _entry(
                                   _signupField(
                                     child: TextFormField(
@@ -486,7 +507,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   .42,
                                   .66,
                                 ),
-                                const SizedBox(height: 11),
+                                SizedBox(height: checkboxGap),
                                 _entry(
                                   Padding(
                                     padding: const EdgeInsets.only(left: 11),
@@ -536,11 +557,11 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   .52,
                                   .76,
                                 ),
-                                const SizedBox(height: 30),
+                                SizedBox(height: buttonGap),
                                 _entry(
                                   PressScale(
                                     child: SizedBox(
-                                      height: 53,
+                                      height: buttonHeight,
                                       child: ElevatedButton(
                                         onPressed: _isSubmitting
                                             ? null
@@ -615,26 +636,7 @@ class _SignupWavesPainter extends CustomPainter {
 
     final upper = wavePaint(.15, .45);
     final teal = wavePaint(.36, .76);
-    final lower = Paint()..color = navyColor;
 
-    final smallWave = Paint()..color = const Color(0x180B2E3B);
-    for (final centerX in [width * .3, width * .78]) {
-      final tiny = Path()
-        ..moveTo(centerX - 15, height * .045)
-        ..quadraticBezierTo(
-          centerX,
-          height * .085,
-          centerX + 15,
-          height * .045,
-        );
-      canvas.drawPath(
-        tiny,
-        Paint()
-          ..color = smallWave.color
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2,
-      );
-    }
 
     // Wave contours and vertical gradients follow the supplied Sign Up image.
     final first = Path()
@@ -746,61 +748,7 @@ class _SignupWavesPainter extends CustomPainter {
       ..close();
     canvas.drawPath(second, teal);
 
-    final third = Path()
-      ..moveTo(0, height * .78)
-      ..cubicTo(
-        width * .14,
-        height * .78,
-        width * .20,
-        height * .95,
-        width * .30,
-        height * .95,
-      )
-      ..cubicTo(
-        width * .47,
-        height * .78,
-        width * .62,
-        height * .72,
-        width * .79,
-        height * .91,
-      )
-      ..cubicTo(
-        width * .90,
-        height * .98,
-        width * .96,
-        height * .68,
-        width,
-        height * .68,
-      )
-      ..lineTo(width, height * .78)
-      ..cubicTo(
-        width * .90,
-        height * .81,
-        width * .84,
-        height * .99,
-        width * .77,
-        height * .96,
-      )
-      ..cubicTo(
-        width * .61,
-        height * .78,
-        width * .47,
-        height * .80,
-        width * .31,
-        height * .99,
-      )
-      ..cubicTo(
-        width * .20,
-        height * .99,
-        width * .13,
-        height * .81,
-        0,
-        height * .78,
-      )
-      ..close();
-    canvas.drawPath(third, lower);
-  }
-
+}
   @override
   bool shouldRepaint(covariant _SignupWavesPainter oldDelegate) => false;
 }

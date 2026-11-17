@@ -1,9 +1,10 @@
+
 ## 👥 Tim Pengembang
 
-Proyek SiagaBanjir dikembangkan oleh kelompok:
+Proyek SiagaBanjir dikembangkan oleh:
 
-1. **Bunga Indah** — 24343003
-2. **Lydya Husni Anggina Harahap** — 24343040
+1. **Bunga Indah** — Universitas Negeri Padang
+2. **Lydya Husni Anggina Harahap** — Universitas Negeri Padang
 
 ## 👨‍🏫 Dosen Pembimbing
 
@@ -13,20 +14,26 @@ Proyek SiagaBanjir dikembangkan oleh kelompok:
 
 ## 📖 Tentang Aplikasi
 
-**SiagaBanjir** merupakan aplikasi berbasis teknologi yang dirancang sebagai sarana informasi dan kesiapsiagaan bencana banjir bagi masyarakat Kota Padang.
+**SiagaBanjir** merupakan aplikasi berbasis teknologi yang dirancang untuk membantu masyarakat Kota Padang memperoleh informasi dan meningkatkan kesiapsiagaan dalam menghadapi potensi bencana banjir.
 
-Aplikasi ini menyediakan berbagai fitur yang membantu masyarakat memperoleh informasi mengenai status siaga banjir, kondisi wilayah, cuaca, ketinggian sungai, lokasi evakuasi, serta informasi terkait kebencanaan.
+Aplikasi ini menyediakan informasi terkait:
 
-Selain itu, SiagaBanjir dilengkapi dengan fitur SOS untuk simulasi koordinasi keadaan darurat, laporan warga, komunikasi keluarga, dan edukasi kesiapsiagaan bencana.
+- Status siaga banjir dan kondisi wilayah.
+- Informasi cuaca.
+- Ketinggian air sungai.
+- Lokasi dan informasi evakuasi.
+- Laporan kondisi banjir dari masyarakat.
 
-Melalui aplikasi ini, diharapkan masyarakat dapat lebih mudah memperoleh informasi, meningkatkan kewaspadaan, serta mempersiapkan diri dalam menghadapi potensi bencana banjir.
+Selain itu, SiagaBanjir dilengkapi dengan fitur pendukung kesiapsiagaan bencana, seperti:
 
-**SiagaBanjir — Kenali Risiko, Tingkatkan Kesiapsiagaan, Lindungi Sesama.** 🌊
+- **SOS:** fitur simulasi koordinasi keadaan darurat.
+- **Komunikasi Keluarga:** mendukung komunikasi dan koordinasi antaranggota keluarga.
+- **Edukasi Kebencanaan:** menyediakan informasi untuk meningkatkan pemahaman masyarakat mengenai kesiapsiagaan banjir.
+
+Melalui aplikasi ini, diharapkan masyarakat dapat memperoleh informasi kebencanaan dengan lebih mudah, meningkatkan kewaspadaan, dan mempersiapkan diri dalam menghadapi potensi banjir.
 
 ---
 
 <p align="center">
-  <img src="https://i.pinimg.com/736x/3b/77/0d/3b770d52962798dc8cf18d98f1706acc.jpg"
-       width="300"
-       alt="Ilustrasi SiagaBanjir">
+  **SiagaBanjir — Kenali Risiko, Tingkatkan Kesiapsiagaan, Lindungi Sesama.** 🌊
 </p>
